@@ -1,4 +1,4 @@
-# 日志服务器 (log_server)
+# 日志服务器 (log_server) [English](./README_EN.md)
 
 ## 项目简介
 
