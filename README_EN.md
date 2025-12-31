@@ -15,7 +15,7 @@ This is a high-performance log server specifically designed to consume log messa
 ### Log Features
 - **Multi-level Log Support**: TRACE, DEBUG, INFO, WARN, ERROR, FATAL
 - **Custom Log Format**: Standardized log format `[Time] [Level] Log Content`
-- **JSON Message Parsing**: Supports Kafka message format `{"l":"INFO","S":"Log Content"}`
+- **JSON Message Parsing**: Supports Kafka message format `{"L":"INFO","S":"Log Content"}`
 - **Real-time Log Statistics**: Message processing count and performance monitoring
 
 ### System Features
@@ -96,15 +96,15 @@ Send log messages to Kafka topics:
 
 ```bash
 # Send INFO level log
-echo '{"l":"INFO","S":"Application started successfully"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"INFO","S":"Application started successfully"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
 
 # Send ERROR level log
-echo '{"l":"ERROR","S":"Database connection failed"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"ERROR","S":"Database connection failed"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
 
 # Send multi-line logs
-echo '{"l":"DEBUG","S":"User login request processing"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
-echo '{"l":"INFO","S":"User authentication successful"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
-echo '{"l":"WARN","S":"API response time is long: 2.5s"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"DEBUG","S":"User login request processing"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"INFO","S":"User authentication successful"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"WARN","S":"API response time is long: 2.5s"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
 ```
 
 ## 📁 Log File Structure
@@ -196,7 +196,7 @@ htop
 
 ### Common Issues
 1. **Kafka connection failure**: Confirm broker address and port are correct
-2. **Message format error**: Use standard JSON format `{"l":"Level","S":"Content"}`
+2. **Message format error**: Use standard JSON format `{"L":"Level","S":"Content"}`
 3. **Permission issues**: Ensure application has write permissions to log directory
 
 ### Contact Information

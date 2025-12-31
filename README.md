@@ -15,7 +15,7 @@
 ### 日志功能
 - **多级日志支持**: TRACE、DEBUG、INFO、WARN、ERROR、FATAL
 - **自定义日志格式**: 标准化的日志格式 `[时间] [级别] 日志内容`
-- **JSON消息解析**: 支持Kafka消息格式 `{"l":"INFO","S":"日志内容"}`
+- **JSON消息解析**: 支持Kafka消息格式 `{"L":"INFO","S":"日志内容"}`
 - **实时日志统计**: 消息处理计数和性能监控
 
 ### 系统功能
@@ -96,15 +96,15 @@ kafka:
 
 ```bash
 # 发送INFO级别日志
-echo '{"l":"INFO","S":"应用程序启动成功"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"INFO","S":"应用程序启动成功"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
 
 # 发送ERROR级别日志
-echo '{"l":"ERROR","S":"数据库连接失败"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"ERROR","S":"数据库连接失败"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
 
 # 发送多行日志
-echo '{"l":"DEBUG","S":"用户登录请求处理"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
-echo '{"l":"INFO","S":"用户认证成功"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
-echo '{"l":"WARN","S":"API响应时间较长: 2.5s"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"DEBUG","S":"用户登录请求处理"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"INFO","S":"用户认证成功"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
+echo '{"L":"WARN","S":"API响应时间较长: 2.5s"}' | kafka-console-producer --broker-list localhost:9092 --topic logs
 ```
 
 ## 📁 日志文件结构
@@ -196,7 +196,7 @@ htop
 
 ### 常见问题
 1. **Kafka连接失败**: 确认broker地址和端口正确
-2. **消息格式错误**: 使用标准JSON格式 `{"l":"级别","S":"内容"}`
+2. **消息格式错误**: 使用标准JSON格式 `{"L":"级别","S":"内容"}`
 3. **权限问题**: 确保应用有写入日志目录的权限
 
 ### 联系方式
