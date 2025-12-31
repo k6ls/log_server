@@ -1,4 +1,4 @@
-# Log Server (log_server)
+# Log Server (log_server) [中文](./README.md)
 
 ## Project Overview
 
