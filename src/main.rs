@@ -651,7 +651,7 @@ async fn simulate_kafka_message_reception() -> Result<Option<String>, Box<dyn st
     ];
     
     let message = messages[rand::random::<usize>() % messages.len()];
-    let json_message = format!(r#"{{"l":"{}","S":"{}"}}"#, level, message);
+    let json_message = format!(r#"{{"L":"{}","S":"{}"}}"#, level, message);
     
     Ok(Some(json_message))
 }
