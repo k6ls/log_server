@@ -1,0 +1,22 @@
+logging:
+  level: "trace"
+  path: "logs"
+  compress: true
+  rotate: "hour" # 按照"小时"、"天"
+  retention_days: 90 # 日志保留天数
+  cleanup_time: "01:00"  # 每天凌晨1点执行日志清理
+
+kafka:
+  enabled: true
+  brokers:
+    - "localhost:9092"
+  group_id: "log_server_group"
+  topics:
+    - "logs"
+  auto_offset_reset: "earliest"
+  session_timeout_ms: 30000
+  heartbeat_interval_ms: 3000
+  reconnect_interval_ms: 10000  # 重连间隔（毫秒）
+
+# Kafka消息格式示例:
+# {"l": "INFO", "S": "日志内容"}
