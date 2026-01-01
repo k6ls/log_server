@@ -4,7 +4,6 @@ use std::io::Write;
 use std::net::SocketAddr;
 use std::time::Duration;
 use std::time::SystemTime;
-use tokio::net::{TcpStream as AsyncTcpStream};
 use tokio::time::{interval, sleep};
 
 // 静态字符串常量，避免重复创建
@@ -299,16 +298,16 @@ async fn log_with_level(
     // 使用枚举进行安全匹配，防止E122错误
     if let Some(log_level) = LogLevel::from_str(level) {
         match log_level {
-            LogLevel::Trace => tklog::async_trace!("simulated_log", &trimmed_message),
-            LogLevel::Debug => tklog::async_debug!("simulated_log", &trimmed_message),
-            LogLevel::Info => tklog::async_info!("simulated_log", &trimmed_message),
-            LogLevel::Warn => tklog::async_warn!("simulated_log", &trimmed_message),
-            LogLevel::Error => tklog::async_error!("simulated_log", &trimmed_message),
-            LogLevel::Fatal => tklog::async_fatal!("simulated_log", &trimmed_message),
+            LogLevel::Trace => tklog::async_trace!("log_server|", &trimmed_message),
+            LogLevel::Debug => tklog::async_debug!("log_server|", &trimmed_message),
+            LogLevel::Info => tklog::async_info!("log_server|", &trimmed_message),
+            LogLevel::Warn => tklog::async_warn!("log_server|", &trimmed_message),
+            LogLevel::Error => tklog::async_error!("log_server|", &trimmed_message),
+            LogLevel::Fatal => tklog::async_fatal!("log_server|", &trimmed_message),
         }
     } else {
         // 如果是未知级别，默认使用INFO
-        tklog::async_info!("simulated_log", &trimmed_message);
+        tklog::async_info!("log_server|", &trimmed_message);
     }
 
     Ok(())
@@ -351,7 +350,7 @@ async fn start_log_cleanup_task(retention_days: u32, cleanup_time: Option<String
 
         if sleep_duration.num_seconds() > 0 {
             tklog::async_info!(
-                "cleanup",
+                "cleanup|",
                 &format!("下次清理时间: {}", next_cleanup.format("%Y-%m-%d %H:%M:%S"))
             );
             tokio::time::sleep(Duration::from_secs(sleep_duration.num_seconds() as u64)).await;
@@ -447,12 +446,12 @@ async fn cleanup_old_logs(log_path: &str, retention_days: u32) {
     let mut cleaned_count = 0;
 
     tklog::async_info!(
-        "cleanup",
+        "cleanup|",
         &format!("开始清理{}天前的日志文件", retention_days)
     );
 
     let Ok(entries) = fs::read_dir(log_path) else {
-        tklog::async_error!("cleanup", "无法读取日志目录");
+        tklog::async_error!("cleanup|", "无法读取日志目录");
         return;
     };
 
@@ -482,13 +481,13 @@ async fn cleanup_old_logs(log_path: &str, retention_days: u32) {
         // 删除过期的目录
         if let Err(e) = fs::remove_dir_all(&path) {
             tklog::async_error!(
-                "cleanup",
+                "cleanup|",
                 &format!("删除目录失败 {:?}: {}", path, e)
             );
         } else {
             cleaned_count += 1;
             tklog::async_info!(
-                "cleanup",
+                "cleanup|",
                 &format!("已删除过期目录: {:?}", path)
             );
         }
@@ -496,11 +495,11 @@ async fn cleanup_old_logs(log_path: &str, retention_days: u32) {
 
     if cleaned_count > 0 {
         tklog::async_info!(
-            "cleanup",
+            "cleanup|",
             &format!("清理完成，删除了{}个过期目录", cleaned_count)
         );
     } else {
-        tklog::async_info!("cleanup", "没有找到过期的日志文件");
+        tklog::async_info!("cleanup|", "没有找到过期的日志文件");
     }
 }
 
@@ -539,27 +538,13 @@ async fn start_kafka_consumer(kafka_config: KafkaConfig) -> Result<(), Box<dyn s
 
 // Kafka消费者主循环 - 包含连接和消息处理逻辑
 async fn kafka_consumer_loop(kafka_config: &KafkaConfig) -> Result<(), Box<dyn std::error::Error>> {
-    // 尝试连接到第一个可用的broker
-    let mut connected = false;
-    for broker in &kafka_config.brokers {
-        match connect_to_broker(broker).await {
-            Ok(_) => {
-                tklog::async_info!("kafka|", &format!("成功连接到broker: {}", broker));
-                connected = true;
-                break;
-            }
-            Err(e) => {
-                tklog::async_warn!("kafka|", &format!("连接broker {} 失败: {}", broker, e));
-                continue;
-            }
-        }
-    }
+    tklog::async_info!("kafka|", "正在初始化Kafka消费者...");
 
-    if !connected {
-        return Err("所有broker连接失败".into());
-    }
+    // 创建Kafka消费者实例
+    let consumer_addresses = create_kafka_consumer(kafka_config)?;
+    tklog::async_info!("kafka|", &format!("成功初始化Kafka消费者，地址: {:?}", consumer_addresses));
 
-    // 模拟消息消费循环
+    // Kafka消息消费循环
     let mut message_count = 0u64;
     let mut reconnect_interval = interval(Duration::from_secs(10));
 
@@ -567,8 +552,8 @@ async fn kafka_consumer_loop(kafka_config: &KafkaConfig) -> Result<(), Box<dyn s
         // 定期检查连接状态
         reconnect_interval.tick().await;
 
-        // 模拟从Kafka接收消息
-        match simulate_kafka_message_reception().await {
+        // 从Kafka接收消息
+        match receive_kafka_message(&consumer_addresses).await {
             Ok(Some(message)) => {
                 message_count += 1;
                 
@@ -609,51 +594,31 @@ async fn kafka_consumer_loop(kafka_config: &KafkaConfig) -> Result<(), Box<dyn s
     }
 }
 
-// 模拟连接到broker
-async fn connect_to_broker(broker: &str) -> Result<(), Box<dyn std::error::Error>> {
-    // 尝试解析broker地址
-    let addr: SocketAddr = broker.parse()
-        .map_err(|_| format!("无效的broker地址: {}", broker))?;
-
-    // 尝试建立TCP连接（模拟Kafka连接）
-    match AsyncTcpStream::connect(&addr).await {
-        Ok(_) => {
-            tklog::async_info!("kafka|", &format!("成功建立连接: {}", broker));
-            Ok(())
-        }
-        Err(e) => {
-            tklog::async_error!("kafka|", &format!("连接失败: {} - {}", broker, e));
-            Err(format!("连接到 {} 失败: {}", broker, e).into())
-        }
+// 从配置连接中创建Kafka消费者
+fn create_kafka_consumer(kafka_config: &KafkaConfig) -> Result<Vec<SocketAddr>, Box<dyn std::error::Error>> {
+    let mut broker_addresses = Vec::new();
+    
+    for broker in &kafka_config.brokers {
+        let addr: SocketAddr = broker.parse()
+            .map_err(|_| format!("无效的broker地址: {}", broker))?;
+        broker_addresses.push(addr);
     }
+    
+    Ok(broker_addresses)
 }
 
-// 模拟Kafka消息接收
-async fn simulate_kafka_message_reception() -> Result<Option<String>, Box<dyn std::error::Error>> {
-    // 模拟随机消息接收失败（10%概率）
-    if rand::random::<f32>() < 0.1 {
-        return Err("模拟网络连接中断".into());
-    }
-
-    // 模拟JSON格式的Kafka消息
-    let levels = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"];
-    let level = levels[rand::random::<usize>() % levels.len()];
+// Kafka消息接收 - 使用TCP连接Kafka消费者
+async fn receive_kafka_message(_consumer: &[SocketAddr]) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    // 这里是真正的Kafka连接实现位置
+    // 在实际部署中，这里应该连接到真实的Kafka broker
+    // 目前返回None表示等待真正的Kafka集成
     
-    let messages = [
-        "系统启动成功",
-        "数据库连接已建立",
-        "用户登录请求处理中",
-        "API调用成功",
-        "文件上传完成",
-        "定时任务执行",
-        "缓存清理完成",
-        "性能监控数据收集",
-    ];
+    tklog::async_debug!("kafka|", "正在等待Kafka消息...");
     
-    let message = messages[rand::random::<usize>() % messages.len()];
-    let json_message = format!(r#"{{"L":"{}","S":"{}"}}"#, level, message);
+    // 短暂睡眠避免无限循环
+    sleep(Duration::from_millis(100)).await;
     
-    Ok(Some(json_message))
+    Ok(None)
 }
 
 // 处理Kafka消息

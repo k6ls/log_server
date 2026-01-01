@@ -19,4 +19,4 @@ kafka:
   reconnect_interval_ms: 10000  # 重连间隔（毫秒）
 
 # Kafka消息格式示例:
-# {"l": "INFO", "S": "日志内容"}
+# {"L": "INFO", "S": "日志内容"}
